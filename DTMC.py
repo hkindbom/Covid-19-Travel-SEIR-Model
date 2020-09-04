@@ -57,28 +57,26 @@ def plot_result(end_time, I_over_time_0, I_over_time_1):
 
 
 def main():
-    travel_rates = [[0, 5], [10, 0]]
+    travel_rates = [[0, 100], [100, 0]]
     travel_model = Travelling(travel_rates)
 
     # Country 0
     beta_0 = 1
-    gamma_0 = 0.25
+    gamma_0 = 0.5
     N_0 = 1000
-    I_start_0 = 0
+    I_start_0 = 333
     epidemic_model_0 = DTMC(beta_0, gamma_0, N_0, I_start_0)
 
     # Country 1
     beta_1 = 1
-    gamma_1 = 0.34
-    N_1 = 2000
-    I_start_1 = 200
+    gamma_1 = 0.5
+    N_1 = 6000
+    I_start_1 = 2000
     epidemic_model_1 = DTMC(beta_1, gamma_1, N_1, I_start_1)
 
     end_time = 10
     max_N_0 = max(N_0 + (travel_rates[1][0] - travel_rates[0][1]) * end_time, N_0)
     max_N_1 = max(N_1 + (travel_rates[0][1] - travel_rates[1][0]) * end_time, N_1)
-    print(max_N_0, max_N_1)
-
 
     delta_t = min(epidemic_model_0.get_delta_t(max_N_0), epidemic_model_1.get_delta_t(max_N_1))
     steps = int(end_time // delta_t)
