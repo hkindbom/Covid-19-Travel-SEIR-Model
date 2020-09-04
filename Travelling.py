@@ -2,25 +2,23 @@
 
 class Travelling:
 
-    def __init__(self):
+    def __init__(self, travel_rates):
         '''
+        E.g.
             SWE   ENG
         SWE  0    100
         ENG  200   0
+        = [[0, 100], [200, 0]]
         '''
-        self.travel_rates = [[0, 100],[200, 0]]
+        self.travel_rates = travel_rates # per time unit
 
-    def generate_travellers(self, N, S, I, R, nr_travellers):
+    def generate_travellers_from(self, N, I, from_idx, to_idx, delta_t):
+        S = N - I
         # nr suseptibles travelling
-        S_travel = nr_travellers*S/N
+        S_travel = delta_t * self.travel_rates[from_idx][to_idx] * S / N
 
         # nr infective travelling
-        I_travel = nr_travellers*I/N
+        I_travel = delta_t * self.travel_rates[from_idx][to_idx] * I / N
 
-        # nr recovered travelling
-        R_travel = nr_travellers*R/N
-
-        # Add random generation
-
-        return S_travel, I_travel, R_travel
+        return S_travel, I_travel
 
