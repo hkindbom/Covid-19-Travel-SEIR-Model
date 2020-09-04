@@ -1,4 +1,15 @@
-## Epidemic Modelling
-### KTH - Applied Systems Engineering
+# SEQIJR model for Covid-19
 
-Team Delta
+SEQIJR-Model:
+
+ S - Suspectible
+ I - Infective
+ R - Recovered
+
+## Authors
+
+Team delta
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
