@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from Metrics import norm_L
+
 class SEIR:
 
     def __init__(self, S0, E0, I0, R0, L, dt, steps, n, beta=0.75, gamma=0.54, alpha=0.2):
@@ -22,12 +24,13 @@ class SEIR:
         self.beta  = beta
         self.gamma = gamma
         self.alpha = alpha
+        self.epsilon = 0.43
 
     def next_step(self, t):
-        dS = - self.beta * np.multiply(self.S[:,t-1], self.I[:,t-1])
-        dE = self.beta * np.multiply(self.S[:,t-1], self.I[:,t-1]) - self.alpha*self.E[:,t-1]
-        dI = self.alpha*self.E[:,t-1] - self.gamma*self.I[:,t-1]
-        dR = self.gamma*self.I[:,t-1]
+        dS = -self.epsilon * self.L.dot(self.S[:,t-1]) - self.beta * np.multiply(self.S[:,t-1], self.I[:,t-1])
+        dE = -self.epsilon * self.L.dot(self.E[:,t-1]) + self.beta * np.multiply(self.S[:,t-1], self.I[:,t-1]) - self.alpha*self.E[:,t-1]
+        dI = -self.epsilon * self.L.dot(self.I[:,t-1]) + self.alpha*self.E[:,t-1] - self.gamma*self.I[:,t-1]
+        dR = -self.epsilon * self.L.dot(self.R[:,t-1]) + self.gamma*self.I[:,t-1]
 
         self.S[:,t] = self.S[:,t-1] + dS*self.dt
         self.E[:,t] = self.E[:,t-1] + dE*self.dt
@@ -43,23 +46,27 @@ def plot_SEIR(seir, index):
 
 if __name__ == "__main__":
     steps = 10000
+    D = np.array([[3000, 0, 0],[0, 5000, 0],[0, 0, 2000]])
+    W = np.array([[0, 3000, 0],[3000, 0, 2000],[0, 2000, 0]])
+    L_un = D - W
+    L = norm_L(L_un, D)
     seir = SEIR(
-                [0.99, 0.95], #S0
-                [0, 0], #E0
-                [0.01, 0.05], #I0
-                [0, 0], #R0
-                [[0, 0], [0, 0]], #L
-                0.01, #dt
+                [0.99, 1.0, 0.98], #S0
+                [0, 0, 0], #E0
+                [0.01, 0, 0], #I0
+                [0, 0, 0], #R0
+                L, #L
+                0.005, #dt
                 steps, # no of steps
-                2, # no of countries
-                beta=0.71,
+                3, # no of countries
+                beta=1.5,
                 gamma=0.54,
                 alpha=0.54
                )
     for t in range(1, steps):
         seir.next_step(t)
-        print(seir.S[0][t] + seir.E[0][t] + seir.I[0][t] + seir.R[0][t])
-    #print(seir.I[0], seir.E[0])
+        #print(seir.S[0][t] + seir.E[0][t] + seir.I[0][t] + seir.R[0][t])
+
     fig, axs = plt.subplots(2)
     axs[0].plot(seir.t, seir.S[0], 'g', fillstyle='none', label='Susceptible')
     axs[0].plot(seir.t, seir.E[0], 'r', fillstyle='none', label='Exposed')

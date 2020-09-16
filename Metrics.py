@@ -34,17 +34,11 @@ rs = [0.8, 0.2, 0.7]
 epsilon = 0.3
 c = [1, 4, 2]
 
-print(calc_QoS(Lambda, rs, epsilon, c))
-
-
 RT = 40
 RNT = 30
-print(calc_Lambda(RT, RNT))
 
 
 
 D = np.array([[3000, 0, 0],[0, 5000, 0],[0, 0, 2000]])
 W = np.array([[0, 3000, 0],[3000, 0, 2000],[0, 2000, 0]])
 L_un = D - W
-print(L_un)
-print(norm_L(L_un, D))
