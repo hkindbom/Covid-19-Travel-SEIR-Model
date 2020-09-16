@@ -1,4 +1,6 @@
 # File containing function for calculating metrics
+import numpy as np
+from scipy.linalg import fractional_matrix_power
 
 def calc_QoS(Lambdas, rs, epsilon, c):
     """
@@ -23,6 +25,9 @@ def calc_Lambda(RT, RNT):
     """
     return (RT - RNT)/RNT
 
+def norm_L(L_un, D):
+    D_mod = fractional_matrix_power(D, -0.5)
+    return D_mod @ L_un @ D_mod
 
 Lambda = [0.6, 0.2, 0.5]
 rs = [0.8, 0.2, 0.7]
@@ -35,3 +40,11 @@ print(calc_QoS(Lambda, rs, epsilon, c))
 RT = 40
 RNT = 30
 print(calc_Lambda(RT, RNT))
+
+
+
+D = np.array([[3000, 0, 0],[0, 5000, 0],[0, 0, 2000]])
+W = np.array([[0, 3000, 0],[3000, 0, 2000],[0, 2000, 0]])
+L_un = D - W
+print(L_un)
+print(norm_L(L_un, D))
