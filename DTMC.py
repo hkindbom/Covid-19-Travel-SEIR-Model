@@ -63,15 +63,15 @@ def main():
     # Country 0
     beta_0 = 1
     gamma_0 = 0.5
-    N_0 = 1000
-    I_start_0 = 333
+    N_0 = 1000000
+    I_start_0 = 1000
     epidemic_model_0 = DTMC(beta_0, gamma_0, N_0, I_start_0)
 
     # Country 1
     beta_1 = 1
     gamma_1 = 0.5
-    N_1 = 6000
-    I_start_1 = 2000
+    N_1 = 1000000
+    I_start_1 = 500
     epidemic_model_1 = DTMC(beta_1, gamma_1, N_1, I_start_1)
 
     end_time = 10
