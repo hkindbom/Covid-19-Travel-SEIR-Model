@@ -19,6 +19,8 @@
 #
 # beta(N) = C(N) / N,    C(N) = lambda * N^a,    a = 0.05
 
+import math
+import random
 import numpy as np
 import xlrd
 import matplotlib.pyplot as plt
@@ -89,29 +91,34 @@ if __name__ == "__main__":
     travel_rates = [[0, 0], [0, 0]]
     travel_model = Travelling(travel_rates)
 
-    dt = 5
+    dt = 1
+    N_Sweden = 10000000
+    I_Sweden = 100
+
+    N_UK = 60000000
+    I_UK = 100
 
     SIR_sweden = SIR_model(
-                            beta=0.85,
-                            gamma=0.45,
-                            S=10000000,
-                            I=10,
+                            beta=0.71,
+                            gamma=0.54,
+                            S=N_Sweden-I_Sweden,
+                            I=I_Sweden,
                             R=0,
-                            N=10000000,
+                            N=N_Sweden,
                             dt=dt
                            )
 
     SIR_nz = SIR_model(
-                            beta=0.85,
-                            gamma=0.45,
-                            S=10000000,
-                            I=0,
+                            beta=0.74,
+                            gamma=0.73,
+                            S=N_UK-I_UK,
+                            I=I_UK,
                             R=0,
-                            N=10000000,
+                            N=N_UK,
                             dt=dt
                            )
 
-    for t in range(0, 100):
+    for t in range(0, 1000):
         new_state_sv = SIR_sweden.next_step()
         new_state_nz = SIR_nz.next_step()
 
@@ -122,21 +129,20 @@ if __name__ == "__main__":
                                                                    SIR_nz.I, 1, 0, dt)
 
 
-        SIR_sweden.add_travellers(S_from_1 - S_from_0, I_from_1 - I_from_0)
-        SIR_nz.add_travellers(S_from_0 - S_from_1, I_from_0 - I_from_1)
-
+        #SIR_sweden.add_travellers(S_from_1 - S_from_0, I_from_1 - I_from_0)
+        #SIR_nz.add_travellers(S_from_0 - S_from_1, I_from_0 - I_from_1)
         SIR_sweden.update(new_state_sv)
         SIR_nz.update(new_state_nz)
 
     fig, axs = plt.subplots(2)
-    fig.suptitle('Sweden / NZ')
+    fig.suptitle('Sweden / UK')
     axs[0].plot(SIR_sweden.t_vector, SIR_sweden.I_vector, 'g', fillstyle='none', label='Infective')
-    axs[0].plot(SIR_sweden.t_vector, SIR_sweden.S_vector, 'r', fillstyle='none', label='Susceptible')
-    axs[0].plot(SIR_sweden.t_vector, SIR_sweden.R_vector, 'b', fillstyle='none', label='Recovered')
+    #axs[0].plot(SIR_sweden.t_vector, SIR_sweden.S_vector, 'r', fillstyle='none', label='Susceptible')
+    #axs[0].plot(SIR_sweden.t_vector, SIR_sweden.R_vector, 'b', fillstyle='none', label='Recovered')
     axs[0].legend(loc="upper right")
 
     axs[1].plot(SIR_nz.t_vector, SIR_nz.I_vector, 'g', fillstyle='none', label='Infective')
-    axs[1].plot(SIR_nz.t_vector, SIR_nz.S_vector, 'r', fillstyle='none', label='Susceptible')
-    axs[1].plot(SIR_nz.t_vector, SIR_nz.R_vector, 'b', fillstyle='none', label='Recovered')
+    #axs[1].plot(SIR_nz.t_vector, SIR_nz.S_vector, 'r', fillstyle='none', label='Susceptible')
+    #axs[1].plot(SIR_nz.t_vector, SIR_nz.R_vector, 'b', fillstyle='none', label='Recovered')
     axs[1].legend(loc="upper left")
     plt.show()
