@@ -2,6 +2,7 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+import pandas as pd
 
 from Metrics import norm_L
 
@@ -94,19 +95,77 @@ def import_confirmed(country):
 
     return total_cases
 
+def get_country_to_sheet(country_sheet_df):
+    country_idxs = country_sheet_df.index.tolist()
+    country_names = country_sheet_df['GEO/TIME'].tolist()
+    country_to_sheet = {}
+    for country_idx in country_idxs:
+        # to get passengers carried (second half of sheet numbers)
+        country_to_sheet[country_names[country_idx]] = 'Data' + str(len(country_names) + 1 + country_idx)
+    return country_to_sheet
+
+def import_travel_as_W(countries='all'):
+    xls = pd.ExcelFile('Traffic_between_EU_countries.xls')
+    first_sheet = pd.read_excel(xls, skiprows = 10, nrows = 35)
+    country_to_sheet = get_country_to_sheet(first_sheet)
+
+    if countries == 'all':
+        countries = first_sheet['GEO/TIME'].tolist()
+
+    values_missing = False
+
+    W = np.zeros((len(countries), len(countries)))
+    for country_idx, country in enumerate(countries):
+        country_travel_df = pd.read_excel(xls, country_to_sheet[country], skiprows = 10, nrows = 35)
+        other_countries = countries.copy()
+        other_countries.remove(country)
+        for other_country in other_countries:
+            travel_rate = pd.to_numeric(country_travel_df.loc[country_travel_df['GEO/TIME'] == other_country]['2019'], errors ='coerce').fillna(0)
+
+            W[country_idx, countries.index(other_country)] = travel_rate
+            if W[country_idx, countries.index(other_country)] < 1:
+                values_missing = True
+
+    print('some travel data is 0: ', values_missing)
+    return make_symmetric(W)
+
+def make_symmetric(W):
+    # Travel from country X to Y in excel sheet for country X may not be same as in sheet for country Y
+    dim = W.shape[0]
+    for row in range(dim):
+        for col in range(dim):
+            W[col, row] = W[row, col]
+    return W
+
+def get_D_from_W(W):
+    row_sums = np.sum(W, axis=1)
+    return np.diag(row_sums)
+
 if __name__ == "__main__":
+    #D = np.array([[10, 0, 0],[0, 10, 0],[0, 0, 10]])
+    #W = np.array([[0, 5, 5],[5, 0, 5],[5, 5, 0]])
+    #L_un = D - W
+    #L = norm_L(L_un, D)
+    #n = 3
     steps = 300
-    D = np.array([[10, 0, 0],[0, 10, 0],[0, 0, 10]])
-    W = np.array([[0, 5, 5],[5, 0, 5],[5, 5, 0]])
+
+    countries = ['Sweden', 'Denmark',  'Norway', 'Finland']
+    W = import_travel_as_W(countries)
+    D = get_D_from_W(W)
     L_un = D - W
     L = norm_L(L_un, D)
-    n = 3
-    confirmed_cases = [import_confirmed('Sweden'), import_confirmed('Norway'), import_confirmed('United Kingdom')]
+    n = len(countries)
+    print('Unnormalized L: ', L_un)
+
+    confirmed_cases = []
+    for country in countries:
+        confirmed_cases.append(import_confirmed(country))
+
     seir = SEIR(
-                [0.95, 1.0, 0.96], #S0
-                [0.025, 0, 0.02], #E0
-                [0.025, 0, 0.02], #I0
-                [0, 0, 0], #R0
+                [0.95, 1.0, 0.96, 0.9], #S0
+                [0.025, 0, 0.02, 0.05], #E0
+                [0.025, 0, 0.02, 0.05], #I0
+                [0, 0, 0, 0], #R0
                 L, #L
                 1, #dt
                 steps, # no of steps
