@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import pandas as pd
 
-from Map import plot_graph, plot_map
+#from Map import plot_graph, plot_map
 from Metrics import norm_L, norm_L_norm
 
 class SEIR:
@@ -31,17 +31,19 @@ class SEIR:
         self.gamma = gamma
         self.alpha = alpha
         self.epsilon = mobility/(365*dt)
-        self.beta_per_country = np.array([beta]*n)
+        self.beta_per_country = np.array([beta, beta, beta, beta*0.7])
         self.restrictions = restrictions
         self.I_trade_off = I_trade_off
 
     def next_step(self, t):
         self.update_betas(t)
-        print(self.beta_per_country)
+        #print(self.beta_per_country)
         dS = -self.epsilon * self.L.dot(self.S[:,t-1]) - (self.beta_per_country * np.multiply(self.S[:,t-1], self.I[:,t-1]).T).T
         dE = -self.epsilon * self.L.dot(self.E[:,t-1]) + (self.beta_per_country * np.multiply(self.S[:,t-1], self.I[:,t-1]).T).T - self.alpha*self.E[:,t-1]
         dI = -self.epsilon * self.L.dot(self.I[:,t-1]) + self.alpha*self.E[:,t-1] - self.gamma*self.I[:,t-1]
         dR = -self.epsilon * self.L.dot(self.R[:,t-1]) + self.gamma*self.I[:,t-1]
+
+        #print(self.epsilon * self.L.dot(self.S[:,t-1]))
 
         self.S[:,t] = self.S[:,t-1] + dS*self.dt
         self.E[:,t] = self.E[:,t-1] + dE*self.dt
@@ -51,7 +53,7 @@ class SEIR:
         self.t[t] = self.dt*t
 
     def update_betas(self, t):
-        if (t-1) % 30 == 0:
+        if (t-1) % 14 == 0:
             for country_idx in range(len(restrictions)):
                 if self.I[country_idx, t-1] > self.I_trade_off:
                     self.beta_per_country[country_idx] *= self.restrictions[country_idx]
@@ -71,11 +73,11 @@ def plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, count
     for i in range(n):
         t = [i for i in range(len(confirmed_cases[i]))]
 
-        axs[x][y].plot(t[:25], confirmed_cases[i][:25], 'rx', fillstyle='none', label='Confirmed cases')
-        axs[x][y].plot(seir.t[:25], populations[i]*seir.AI[i][:25], 'r', fillstyle='none', label='Accumulated Infective')
+        axs[x][y].plot(t[:40], confirmed_cases[i][:40], 'rx', fillstyle='none', label='Confirmed cases')
+        axs[x][y].plot(seir.t[:40], populations[i]*seir.AI[i][:40], 'r', fillstyle='none', label='Accumulated Infective')
 
-        axs[x][y].plot(t[:25], confirmed_recovered_cases[i][:25], 'bx', fillstyle='none', label='Confirmed recoverd cases')
-        axs[x][y].plot(seir.t[:25], populations[i]*seir.R[i][:25], 'b', fillstyle='none', label='Recovered')
+        axs[x][y].plot(t[:40], confirmed_recovered_cases[i][:40], 'bx', fillstyle='none', label='Confirmed recoverd cases')
+        axs[x][y].plot(seir.t[:40], populations[i]*seir.R[i][:40], 'b', fillstyle='none', label='Recovered')
 
         axs[x][y].legend(loc="upper right")
         axs[x][y].title.set_text(countries[i])
@@ -88,17 +90,6 @@ def plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, count
     plt.show()
 
 def plot_traveling(confirmed_cases, confirmed_recovered_cases, seir, n, countries, populations):
-    '''fig, axs = plt.subplots(n)
-    for i in range(n):
-        t = [i for i in range(len(confirmed_cases[i]))]
-        #axs[i].plot(seir.t, seir.S[i], 'g', fillstyle='none', label='Susceptible')
-        #axs[i].plot(seir.t, seir.E[i], 'r', fillstyle='none', label='Exposed')
-        axs[i].plot(t, confirmed_cases[i], 'ro', fillstyle='none', label='Confirmed cases')
-        axs[i].plot(seir.t, 10000000*seir.AI[i], 'r', fillstyle='none', label='Accumulated Infective')
-        #axs[i].plot(seir.t, seir.R[i], 'y', fillstyle='none', label='Recovered')
-        #axs[i].legend(loc="upper right")
-
-    plt.show()'''
     fig, axs = plt.subplots(2, 2)
     fig.tight_layout(pad=2)
     fig.suptitle('Beta=' + str(seir.beta) + ', gamma=' + str(seir.gamma) + ', alpha=' + str(seir.alpha)) # or plt.suptitle('Main title')
@@ -106,15 +97,13 @@ def plot_traveling(confirmed_cases, confirmed_recovered_cases, seir, n, countrie
     y = 0
     for i in range(n):
         t = [i for i in range(len(confirmed_cases[i]))]
-        #axs[x][y].plot(seir.t, seir.S[i], 'g', fillstyle='none', label='Susceptible')
-        #axs[x][y].plot(seir.t, seir.E[i], 'r', fillstyle='none', label='Exposed')
-        axs[x][y].plot(t[:25], confirmed_cases[i][:25], 'rx', fillstyle='none', label='Confirmed cases')
-        axs[x][y].plot(seir.t[:25], populations[i]*seir.AI[i][:25], 'r', fillstyle='none', label='Accumulated Infective')
+        print('TEST')
+        axs[x][y].plot(t, confirmed_cases[i], 'rx', fillstyle='none', label='Confirmed cases')
+        axs[x][y].plot(seir.t, populations[i]*seir.AI[i], 'r', fillstyle='none', label='Accumulated Infective')
 
-        axs[x][y].plot(t[:25], confirmed_recovered_cases[i][:25], 'bx', fillstyle='none', label='Confirmed recoverd cases')
-        axs[x][y].plot(seir.t[:25], populations[i]*seir.R[i][:25], 'b', fillstyle='none', label='Recovered')
+        axs[x][y].plot(t, confirmed_recovered_cases[i], 'bx', fillstyle='none', label='Confirmed recoverd cases')
+        axs[x][y].plot(seir.t, populations[i]*seir.R[i], 'b', fillstyle='none', label='Recovered')
 
-        #axs[x][y].plot(seir.t, seir.R[i], 'y', fillstyle='none', label='Recovered')
         axs[x][y].legend(loc="upper right")
         axs[x][y].title.set_text(countries[i])
 
@@ -122,19 +111,7 @@ def plot_traveling(confirmed_cases, confirmed_recovered_cases, seir, n, countrie
         if x > 1:
             y+=1
             x=0
-        #axs[i].plot(time_confirmed[0:100], confirmed_cases[i][0:100], 'o', label='Uppmätt')
-        #axs[i].plot(x, infected, label='Prognos')
-        #axs[1].plot(time_confirmed, deaths_confirmed, 'o', label='Uppmätt')
-        #axs[1].plot(x, D, label='Prognos')
 
-        #axs[i].get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(millions))
-        #axs[i].legend(loc="upper left")
-        #axs[1].get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(millions))
-        #axs[1].legend(loc="upper left")
-        #plt.xlabel('Dagar sedan 100 bekräftade fall', fontsize=14)
-        #axs[0].set_ylabel('Bekräftat smittade', fontsize=14)
-        #axs[1].set_ylabel('Bekräftat döda', fontsize=14)
-        # plt.title('Prognos: intensivvårdssökande i Sverige', fontsize=18)
     plt.show()
 
 def import_confirmed(country, gamma):
@@ -254,13 +231,13 @@ if __name__ == "__main__":
     L_un = (D - W)
     L = norm_L_norm(L_un, D)
     n = len(countries)
-    restrictions = np.array([0.6, 1, 1, 1])
-    I_trade_off = 0.001
+    restrictions = np.array([0.86, 0.80, 0.8, 1])
+    I_trade_off = 0.0001
     mobility = 0
 
     S0 = [1]*4
     E0 = [0]*4
-    I0 = [0.0001, 0, 0, 0] #[100/populations[i] for i in range(n)]
+    I0 = [100/populations[i] for i in range(n)]
     R0 = [0]*4
     for j in range(n):
         E0[j]  = I0[j]*2.5
@@ -287,5 +264,5 @@ if __name__ == "__main__":
         seir.next_step(t)
 
     step_eval = 100
-    plot_maps(countries, W, seir.AI, step_eval, "AI")
+    #plot_maps(countries, W, seir.AI, step_eval, "AI")
     plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, countries, populations)
