@@ -29,6 +29,10 @@ def norm_L(L_un, D):
     D_mod = fractional_matrix_power(D, -0.5)
     return D_mod @ L_un @ D_mod
 
+def norm_L_norm(L_un, D):
+    D_mod = fractional_matrix_power(D, -1)
+    return D_mod @ L_un
+
 Lambda = [0.6, 0.2, 0.5]
 rs = [0.8, 0.2, 0.7]
 epsilon = 0.3

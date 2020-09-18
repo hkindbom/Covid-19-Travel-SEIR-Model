@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import pandas as pd
 
-from Metrics import norm_L
+from Metrics import norm_L, norm_L_norm
 
 class SEIR:
 
@@ -29,7 +29,7 @@ class SEIR:
         self.beta  = beta
         self.gamma = gamma
         self.alpha = alpha
-        self.epsilon = 0.0
+        self.epsilon = 0.43/(365*dt)
 
     def next_step(self, t):
         dS = -self.epsilon * self.L.dot(self.S[:,t-1]) - self.beta * np.multiply(self.S[:,t-1], self.I[:,t-1])
@@ -51,7 +51,7 @@ def millions(x, pos):
     return '{:,}'.format(x).replace(',', ' ')
 
 
-def plot_SEIR(confirmed_cases, seir, n):
+def plot_SEIR(confirmed_cases, seir, n, countries, populations):
     '''fig, axs = plt.subplots(n)
     for i in range(n):
         t = [i for i in range(len(confirmed_cases[i]))]
@@ -63,16 +63,30 @@ def plot_SEIR(confirmed_cases, seir, n):
         #axs[i].legend(loc="upper right")
 
     plt.show()'''
-    fig, axs = plt.subplots(n, 1)
+    fig, axs = plt.subplots(2, 2)
+    fig.tight_layout(pad=2)
+    x = 0
+    y = 0
     for i in range(n):
-        time_confirmed = [j for j in range(len(confirmed_cases[i]))]
-        axs[i].plot(time_confirmed, confirmed_cases[i], 'o', label='Uppmätt')
+        axs[x][y].plot(seir.t, seir.S[i], 'g', fillstyle='none', label='Susceptible')
+        axs[x][y].plot(seir.t, seir.E[i], 'r', fillstyle='none', label='Exposed')
+        #axs[i].plot(t, confirmed_cases[i], 'ro', fillstyle='none', label='Confirmed cases')
+        axs[x][y].plot(seir.t, seir.AI[i], 'r', fillstyle='none', label='Accumulated Infective')
+        axs[x][y].plot(seir.t, seir.R[i], 'y', fillstyle='none', label='Recovered')
+        axs[x][y].legend(loc="upper right")
+        axs[x][y].title.set_text(countries[i])
+
+        x+=1
+        if x > 1:
+            y+=1
+            x=0
+        #axs[i].plot(time_confirmed[0:100], confirmed_cases[i][0:100], 'o', label='Uppmätt')
         #axs[i].plot(x, infected, label='Prognos')
         #axs[1].plot(time_confirmed, deaths_confirmed, 'o', label='Uppmätt')
         #axs[1].plot(x, D, label='Prognos')
 
-        axs[0].get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(millions))
-        axs[0].legend(loc="upper left")
+        #axs[i].get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(millions))
+        #axs[i].legend(loc="upper left")
         #axs[1].get_yaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(millions))
         #axs[1].legend(loc="upper left")
         #plt.xlabel('Dagar sedan 100 bekräftade fall', fontsize=14)
@@ -94,6 +108,18 @@ def import_confirmed(country):
                 total_cases.append(row[4])
 
     return total_cases
+
+
+def get_pop(country):
+    try:
+        xls = pd.ExcelFile('PopulationByCountry.xlsx')
+        first_sheet = pd.read_excel(xls)
+        #print(first_sheet.head())
+        row = first_sheet.loc[first_sheet['Country'] == country]
+        return int(row['Population'])
+    except:
+        print('No population found for:', country, '!')
+        return None
 
 def get_country_to_sheet(country_sheet_df):
     country_idxs = country_sheet_df.index.tolist()
@@ -151,32 +177,36 @@ if __name__ == "__main__":
     steps = 300
 
     countries = ['Sweden', 'Denmark',  'Norway', 'Finland']
-    W = import_travel_as_W(countries)
-    D = get_D_from_W(W)
-    L_un = D - W
-    L = norm_L(L_un, D)
-    n = len(countries)
-    print('Unnormalized L: ', L_un)
-
+    populations = []
     confirmed_cases = []
+
     for country in countries:
         confirmed_cases.append(import_confirmed(country))
+        populations.append(get_pop(country))
+
+    total_population = sum(populations)
+
+    W = import_travel_as_W(countries)
+    D = get_D_from_W(W)
+    L_un = (D - W)
+    L = norm_L_norm(L_un, D)
+    n = len(countries)
 
     seir = SEIR(
-                [0.95, 1.0, 0.96, 0.9], #S0
+                [0.9, 1.0, 0.96, 0.9], #S0
                 [0.025, 0, 0.02, 0.05], #E0
                 [0.025, 0, 0.02, 0.05], #I0
-                [0, 0, 0, 0], #R0
+                [0.1, 0, 0, 0], #R0
                 L, #L
                 1, #dt
                 steps, # no of steps
                 n, # no of countries
-                beta=0.8,
-                gamma=0.54,
-                alpha=0.54
+                beta=0.2457,
+                gamma=0.0256,
+                alpha=0.39
                )
 
     for t in range(1, steps):
         seir.next_step(t)
 
-    plot_SEIR(confirmed_cases, seir, n)
+    plot_SEIR(confirmed_cases, seir, n, countries, populations)
