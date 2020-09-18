@@ -97,7 +97,6 @@ def plot_traveling(confirmed_cases, confirmed_recovered_cases, seir, n, countrie
     y = 0
     for i in range(n):
         t = [i for i in range(len(confirmed_cases[i]))]
-        print('TEST')
         axs[x][y].plot(t, confirmed_cases[i], 'rx', fillstyle='none', label='Confirmed cases')
         axs[x][y].plot(seir.t, populations[i]*seir.AI[i], 'r', fillstyle='none', label='Accumulated Infective')
 
@@ -211,7 +210,7 @@ if __name__ == "__main__":
     gamma = 0.1056
     alpha = 0.44
 
-    steps = 300
+    steps = 50
 
     countries = ['Sweden', 'Denmark',  'Norway', 'Finland']
     populations = []
