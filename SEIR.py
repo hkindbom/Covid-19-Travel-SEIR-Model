@@ -53,10 +53,12 @@ class SEIR:
         self.t[t] = self.dt*t
 
     def update_betas(self, t):
-        if (t-1) % 14 == 0:
+        if (t-1) % 15 == 0:
             for country_idx in range(len(restrictions)):
                 if self.I[country_idx, t-1] > self.I_trade_off:
                     self.beta_per_country[country_idx] *= self.restrictions[country_idx]
+                #if self.I[country_idx, t-1] < self.I_trade_off:
+                #    self.beta_per_country[country_idx] = self.beta
 
 
 def millions(x, pos):
@@ -73,11 +75,11 @@ def plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, count
     for i in range(n):
         t = [i for i in range(len(confirmed_cases[i]))]
 
-        axs[x][y].plot(t[:40], confirmed_cases[i][:40], 'rx', fillstyle='none', label='Confirmed cases')
-        axs[x][y].plot(seir.t[:40], populations[i]*seir.AI[i][:40], 'r', fillstyle='none', label='Accumulated Infective')
+        axs[x][y].plot(t[:150], confirmed_cases[i][:150], 'rx', fillstyle='none', label='Confirmed cases')
+        axs[x][y].plot(seir.t[:150], populations[i]*seir.AI[i][:150], 'r', fillstyle='none', label='Accumulated Infective')
 
-        axs[x][y].plot(t[:40], confirmed_recovered_cases[i][:40], 'bx', fillstyle='none', label='Confirmed recoverd cases')
-        axs[x][y].plot(seir.t[:40], populations[i]*seir.R[i][:40], 'b', fillstyle='none', label='Recovered')
+        axs[x][y].plot(t[:150], confirmed_recovered_cases[i][:150], 'bx', fillstyle='none', label='Confirmed recoverd cases')
+        axs[x][y].plot(seir.t[:150], populations[i]*seir.R[i][:150], 'b', fillstyle='none', label='Recovered')
 
         axs[x][y].legend(loc="upper right")
         axs[x][y].title.set_text(countries[i])
@@ -210,7 +212,7 @@ if __name__ == "__main__":
     gamma = 0.1056
     alpha = 0.44
 
-    steps = 50
+    steps = 300
 
     countries = ['Sweden', 'Denmark',  'Norway', 'Finland']
     populations = []
@@ -230,7 +232,7 @@ if __name__ == "__main__":
     L_un = (D - W)
     L = norm_L_norm(L_un, D)
     n = len(countries)
-    restrictions = np.array([0.86, 0.80, 0.8, 1])
+    restrictions = np.array([0.71, 0.675, 0.625, 0.65])
     I_trade_off = 0.0001
     mobility = 0
 
