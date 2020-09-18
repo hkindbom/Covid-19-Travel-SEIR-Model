@@ -101,12 +101,13 @@ def get_country_to_sheet(country_sheet_df):
     country_to_sheet = {}
     for country_idx in country_idxs:
         # to get passengers carried (second half of sheet numbers)
-        country_to_sheet[country_names[country_idx]] = 'Data' + str(len(country_names) + 1 + country_idx)
+        country_to_sheet[country_names[country_idx]] = 'Data' + str(len(country_names) + 2 + country_idx)
     return country_to_sheet
 
 def import_travel_as_W(countries='all'):
     xls = pd.ExcelFile('Traffic_between_EU_countries.xls')
-    first_sheet = pd.read_excel(xls, skiprows = 10, nrows = 35)
+    # Turkey is skipped since no good data
+    first_sheet = pd.read_excel(xls, skiprows = 10, nrows = 34)
     country_to_sheet = get_country_to_sheet(first_sheet)
 
     if countries == 'all':
@@ -116,7 +117,7 @@ def import_travel_as_W(countries='all'):
 
     W = np.zeros((len(countries), len(countries)))
     for country_idx, country in enumerate(countries):
-        country_travel_df = pd.read_excel(xls, country_to_sheet[country], skiprows = 10, nrows = 35)
+        country_travel_df = pd.read_excel(xls, country_to_sheet[country], skiprows = 10, nrows = 34)
         other_countries = countries.copy()
         other_countries.remove(country)
         for other_country in other_countries:
