@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import pandas as pd
 
-#from Map import plot_graph, plot_map
+from Map import plot_graph, plot_map
 from Metrics import norm_L, norm_L_norm
 
 class SEIR:
@@ -198,13 +198,13 @@ def get_D_from_W(W):
     row_sums = np.sum(W, axis=1)
     return np.diag(row_sums)
 
-def plot_maps(countries, W, comp_mat, sep_eval, compartment):
+def plot_maps(countries, W, comp_mat, sep_eval, compartment, mobility):
     country_data = {}
     comp_eval = list(comp_mat[:, sep_eval])
     comp_eval = [round(num, 2) for num in comp_eval]
     country_data.update(zip(countries, comp_eval))
 
-    plot_map(country_data, compartment, 'Regional levels of ' + str(compartment) + ' after ' + str(sep_eval) + ' time steps')
+    plot_map(country_data, compartment, 'Regional levels of ' + str(compartment) + ' after ' + str(sep_eval) + ' time steps and eps = ' +str(mobility) )
     plot_graph(W, country_data, 'Undirected Travel Graph', 0.001)
 
 if __name__ == "__main__":
@@ -232,13 +232,13 @@ if __name__ == "__main__":
     L_un = (D - W)
     L = norm_L_norm(L_un, D)
     n = len(countries)
-    restrictions = np.array([0.71, 0.675, 0.625, 0.65])
+    restrictions = np.array([1, 1, 1, 1])#[0.71, 0.675, 0.625, 0.65])
     I_trade_off = 0.0001
-    mobility = 0
+    mobility = 0.43
 
     S0 = [1]*4
     E0 = [0]*4
-    I0 = [100/populations[i] for i in range(n)]
+    I0 = [0.0001, 0.00001, 0.00001, 0.00001]#[100/populations[i] for i in range(n)]
     R0 = [0]*4
     for j in range(n):
         E0[j]  = I0[j]*2.5
@@ -265,5 +265,5 @@ if __name__ == "__main__":
         seir.next_step(t)
 
     step_eval = 100
-    #plot_maps(countries, W, seir.AI, step_eval, "AI")
+    plot_maps(countries, W, seir.AI, step_eval, "AI", mobility)
     plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, countries, populations)
