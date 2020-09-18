@@ -92,5 +92,5 @@ W = np.array([[0, 2, 5, 10],
 
 title = 'Undirected Travel Graph'
 
-plot_graph(W, country_data, title, 1000)
+#plot_graph(W, country_data, title, 1000)
 

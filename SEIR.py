@@ -4,11 +4,12 @@ import matplotlib.pyplot as plt
 import matplotlib
 import pandas as pd
 
+from Map import plot_graph, plot_map
 from Metrics import norm_L, norm_L_norm
 
 class SEIR:
 
-    def __init__(self, S0, E0, I0, R0, L, dt, steps, n, beta=0.75, gamma=0.54, alpha=0.2):
+    def __init__(self, S0, E0, I0, R0, L, dt, steps, n, restrictions, beta=0.75, gamma=0.54, alpha=0.2, mobility=0.43, I_trade_off = 0.001):
         self.S = np.zeros((n, steps))
         self.E = np.zeros((n, steps))
         self.I = np.zeros((n, steps))
@@ -29,11 +30,16 @@ class SEIR:
         self.beta  = beta
         self.gamma = gamma
         self.alpha = alpha
-        self.epsilon = 0.43/(365*dt)
+        self.epsilon = mobility/(365*dt)
+        self.beta_per_country = np.array([beta]*n)
+        self.restrictions = restrictions
+        self.I_trade_off = I_trade_off
 
     def next_step(self, t):
-        dS = -self.epsilon * self.L.dot(self.S[:,t-1]) - self.beta * np.multiply(self.S[:,t-1], self.I[:,t-1])
-        dE = -self.epsilon * self.L.dot(self.E[:,t-1]) + self.beta * np.multiply(self.S[:,t-1], self.I[:,t-1]) - self.alpha*self.E[:,t-1]
+        self.update_betas(t)
+        print(self.beta_per_country)
+        dS = -self.epsilon * self.L.dot(self.S[:,t-1]) - (self.beta_per_country * np.multiply(self.S[:,t-1], self.I[:,t-1]).T).T
+        dE = -self.epsilon * self.L.dot(self.E[:,t-1]) + (self.beta_per_country * np.multiply(self.S[:,t-1], self.I[:,t-1]).T).T - self.alpha*self.E[:,t-1]
         dI = -self.epsilon * self.L.dot(self.I[:,t-1]) + self.alpha*self.E[:,t-1] - self.gamma*self.I[:,t-1]
         dR = -self.epsilon * self.L.dot(self.R[:,t-1]) + self.gamma*self.I[:,t-1]
 
@@ -44,6 +50,11 @@ class SEIR:
         self.R[:,t] = self.R[:,t-1] + dR*self.dt
         self.t[t] = self.dt*t
 
+    def update_betas(self, t):
+        if (t-1) % 30 == 0:
+            for country_idx in range(len(restrictions)):
+                if self.I[country_idx, t-1] > self.I_trade_off:
+                    self.beta_per_country[country_idx] *= self.restrictions[country_idx]
 
 
 def millions(x, pos):
@@ -209,6 +220,15 @@ def get_D_from_W(W):
     row_sums = np.sum(W, axis=1)
     return np.diag(row_sums)
 
+def plot_maps(countries, W, comp_mat, sep_eval, compartment):
+    country_data = {}
+    comp_eval = list(comp_mat[:, sep_eval])
+    comp_eval = [round(num, 2) for num in comp_eval]
+    country_data.update(zip(countries, comp_eval))
+
+    plot_map(country_data, compartment, 'Regional levels of ' + str(compartment) + ' after ' + str(sep_eval) + ' time steps')
+    plot_graph(W, country_data, 'Undirected Travel Graph', 0.001)
+
 if __name__ == "__main__":
     beta = 0.247
     gamma = 0.1056
@@ -234,14 +254,17 @@ if __name__ == "__main__":
     L_un = (D - W)
     L = norm_L_norm(L_un, D)
     n = len(countries)
+    restrictions = np.array([0.6, 1, 1, 1])
+    I_trade_off = 0.001
+    mobility = 0
 
     S0 = [1]*4
     E0 = [0]*4
-    I0 = [100/populations[i] for i in range(n)]
+    I0 = [0.0001, 0, 0, 0] #[100/populations[i] for i in range(n)]
     R0 = [0]*4
     for j in range(n):
         E0[j]  = I0[j]*2.5
-        S0[j] -= I0[j]
+        S0[j] -= (I0[j] + E0[j])
 
     seir = SEIR(
                 S0, #S0
@@ -252,12 +275,17 @@ if __name__ == "__main__":
                 1, #dt
                 steps, # no of steps
                 n, # no of countries
+                restrictions,
                 beta=beta,
                 gamma=gamma,
-                alpha=alpha
+                alpha=alpha,
+                mobility= mobility,
+                I_trade_off = I_trade_off
                )
 
     for t in range(1, steps):
         seir.next_step(t)
 
+    step_eval = 100
+    plot_maps(countries, W, seir.AI, step_eval, "AI")
     plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, countries, populations)
