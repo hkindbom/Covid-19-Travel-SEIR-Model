@@ -51,7 +51,32 @@ def millions(x, pos):
     return '{:,}'.format(x).replace(',', ' ')
 
 
-def plot_SEIR(confirmed_cases, seir, n, countries, populations):
+def plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, countries, populations):
+    fig, axs = plt.subplots(2, 2)
+    fig.tight_layout(pad=2)
+    fig.suptitle('Beta=' + str(seir.beta) + ', gamma=' + str(seir.gamma) + ', alpha=' + str(seir.alpha)) # or plt.suptitle('Main title')
+    x = 0
+    y = 0
+    for i in range(n):
+        t = [i for i in range(len(confirmed_cases[i]))]
+
+        axs[x][y].plot(t[:25], confirmed_cases[i][:25], 'rx', fillstyle='none', label='Confirmed cases')
+        axs[x][y].plot(seir.t[:25], populations[i]*seir.AI[i][:25], 'r', fillstyle='none', label='Accumulated Infective')
+
+        axs[x][y].plot(t[:25], confirmed_recovered_cases[i][:25], 'bx', fillstyle='none', label='Confirmed recoverd cases')
+        axs[x][y].plot(seir.t[:25], populations[i]*seir.R[i][:25], 'b', fillstyle='none', label='Recovered')
+
+        axs[x][y].legend(loc="upper right")
+        axs[x][y].title.set_text(countries[i])
+
+        x+=1
+        if x > 1:
+            y+=1
+            x=0
+
+    plt.show()
+
+def plot_traveling(confirmed_cases, confirmed_recovered_cases, seir, n, countries, populations):
     '''fig, axs = plt.subplots(n)
     for i in range(n):
         t = [i for i in range(len(confirmed_cases[i]))]
@@ -65,14 +90,20 @@ def plot_SEIR(confirmed_cases, seir, n, countries, populations):
     plt.show()'''
     fig, axs = plt.subplots(2, 2)
     fig.tight_layout(pad=2)
+    fig.suptitle('Beta=' + str(seir.beta) + ', gamma=' + str(seir.gamma) + ', alpha=' + str(seir.alpha)) # or plt.suptitle('Main title')
     x = 0
     y = 0
     for i in range(n):
-        axs[x][y].plot(seir.t, seir.S[i], 'g', fillstyle='none', label='Susceptible')
-        axs[x][y].plot(seir.t, seir.E[i], 'r', fillstyle='none', label='Exposed')
-        #axs[i].plot(t, confirmed_cases[i], 'ro', fillstyle='none', label='Confirmed cases')
-        axs[x][y].plot(seir.t, seir.AI[i], 'r', fillstyle='none', label='Accumulated Infective')
-        axs[x][y].plot(seir.t, seir.R[i], 'y', fillstyle='none', label='Recovered')
+        t = [i for i in range(len(confirmed_cases[i]))]
+        #axs[x][y].plot(seir.t, seir.S[i], 'g', fillstyle='none', label='Susceptible')
+        #axs[x][y].plot(seir.t, seir.E[i], 'r', fillstyle='none', label='Exposed')
+        axs[x][y].plot(t[:25], confirmed_cases[i][:25], 'rx', fillstyle='none', label='Confirmed cases')
+        axs[x][y].plot(seir.t[:25], populations[i]*seir.AI[i][:25], 'r', fillstyle='none', label='Accumulated Infective')
+
+        axs[x][y].plot(t[:25], confirmed_recovered_cases[i][:25], 'bx', fillstyle='none', label='Confirmed recoverd cases')
+        axs[x][y].plot(seir.t[:25], populations[i]*seir.R[i][:25], 'b', fillstyle='none', label='Recovered')
+
+        #axs[x][y].plot(seir.t, seir.R[i], 'y', fillstyle='none', label='Recovered')
         axs[x][y].legend(loc="upper right")
         axs[x][y].title.set_text(countries[i])
 
@@ -95,26 +126,36 @@ def plot_SEIR(confirmed_cases, seir, n, countries, populations):
         # plt.title('Prognos: intensivvårdssökande i Sverige', fontsize=18)
     plt.show()
 
-def import_confirmed(country):
+def import_confirmed(country, gamma):
     total_cases = []
+    recovered_cases = []
+    first_day_over_100 = None
     with open('owid-covid-data.csv', newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=';', quotechar='|')
+        i=0
         for row in spamreader:
-            #row[2] = country
-            #row[3] = date
-            #row[4] = total_cases
-            #row[5] = new_cases
-            if row[2] == country:
-                total_cases.append(row[4])
+            daily_acc = row[4]
+            try:
+                daily_acc = float(row[4])
+            except:
+                daily_acc = len(total_cases) -1
+            if row[2] == country and daily_acc > 100:
+                if first_day_over_100 == None:
+                    first_day_over_100 = i
+                total_cases.append(daily_acc)
+                recovered_cases.append(0)
+        i+=1
 
-    return total_cases
+    for i in range(0, len(total_cases)-int(1/gamma)):
+        recovered_cases[i+int(1/gamma)] = total_cases[i]
+
+    return total_cases, recovered_cases
 
 
 def get_pop(country):
     try:
         xls = pd.ExcelFile('PopulationByCountry.xlsx')
         first_sheet = pd.read_excel(xls)
-        #print(first_sheet.head())
         row = first_sheet.loc[first_sheet['Country'] == country]
         return int(row['Population'])
     except:
@@ -169,19 +210,21 @@ def get_D_from_W(W):
     return np.diag(row_sums)
 
 if __name__ == "__main__":
-    #D = np.array([[10, 0, 0],[0, 10, 0],[0, 0, 10]])
-    #W = np.array([[0, 5, 5],[5, 0, 5],[5, 5, 0]])
-    #L_un = D - W
-    #L = norm_L(L_un, D)
-    #n = 3
+    beta = 0.247
+    gamma = 0.1056
+    alpha = 0.44
+
     steps = 300
 
     countries = ['Sweden', 'Denmark',  'Norway', 'Finland']
     populations = []
     confirmed_cases = []
+    confirmed_recovered_cases = []
 
     for country in countries:
-        confirmed_cases.append(import_confirmed(country))
+        conf, rec = import_confirmed(country, gamma)
+        confirmed_cases.append(conf)
+        confirmed_recovered_cases.append(rec)
         populations.append(get_pop(country))
 
     total_population = sum(populations)
@@ -192,21 +235,29 @@ if __name__ == "__main__":
     L = norm_L_norm(L_un, D)
     n = len(countries)
 
+    S0 = [1]*4
+    E0 = [0]*4
+    I0 = [100/populations[i] for i in range(n)]
+    R0 = [0]*4
+    for j in range(n):
+        E0[j]  = I0[j]*2.5
+        S0[j] -= I0[j]
+
     seir = SEIR(
-                [0.9, 1.0, 0.96, 0.9], #S0
-                [0.025, 0, 0.02, 0.05], #E0
-                [0.025, 0, 0.02, 0.05], #I0
-                [0.1, 0, 0, 0], #R0
+                S0, #S0
+                E0, #E0
+                I0, #I0
+                R0, #R0
                 L, #L
                 1, #dt
                 steps, # no of steps
                 n, # no of countries
-                beta=0.2457,
-                gamma=0.0256,
-                alpha=0.39
+                beta=beta,
+                gamma=gamma,
+                alpha=alpha
                )
 
     for t in range(1, steps):
         seir.next_step(t)
 
-    plot_SEIR(confirmed_cases, seir, n, countries, populations)
+    plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, countries, populations)
