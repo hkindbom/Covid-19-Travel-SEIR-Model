@@ -5,7 +5,7 @@ import matplotlib
 import pandas as pd
 
 from Map import plot_graph, plot_map
-from Metrics import norm_L, norm_L_norm
+from Metrics import calc_Lambda, norm_L_norm
 
 class SEIR:
 
@@ -27,23 +27,20 @@ class SEIR:
         self.L = np.array(L)
         self.dt = dt
 
-        self.beta  = beta
+        self.beta = beta
         self.gamma = gamma
         self.alpha = alpha
         self.epsilon = mobility/(365*dt)
-        self.beta_per_country = np.array([beta, beta, beta, beta*0.7])
+        self.beta_per_country = np.array([beta, beta, beta, beta])
         self.restrictions = restrictions
         self.I_trade_off = I_trade_off
 
     def next_step(self, t):
         self.update_betas(t)
-        #print(self.beta_per_country)
         dS = -self.epsilon * self.L.dot(self.S[:,t-1]) - (self.beta_per_country * np.multiply(self.S[:,t-1], self.I[:,t-1]).T).T
         dE = -self.epsilon * self.L.dot(self.E[:,t-1]) + (self.beta_per_country * np.multiply(self.S[:,t-1], self.I[:,t-1]).T).T - self.alpha*self.E[:,t-1]
         dI = -self.epsilon * self.L.dot(self.I[:,t-1]) + self.alpha*self.E[:,t-1] - self.gamma*self.I[:,t-1]
         dR = -self.epsilon * self.L.dot(self.R[:,t-1]) + self.gamma*self.I[:,t-1]
-
-        #print(self.epsilon * self.L.dot(self.S[:,t-1]))
 
         self.S[:,t] = self.S[:,t-1] + dS*self.dt
         self.E[:,t] = self.E[:,t-1] + dE*self.dt
@@ -54,7 +51,7 @@ class SEIR:
 
     def update_betas(self, t):
         if (t-1) % 15 == 0:
-            for country_idx in range(len(restrictions)):
+            for country_idx in range(len(self.restrictions)):
                 if self.I[country_idx, t-1] > self.I_trade_off:
                     self.beta_per_country[country_idx] *= self.restrictions[country_idx]
                 #if self.I[country_idx, t-1] < self.I_trade_off:
@@ -207,14 +204,9 @@ def plot_maps(countries, W, comp_mat, sep_eval, compartment, mobility):
     plot_map(country_data, compartment, 'Regional levels of ' + str(compartment) + ' after ' + str(sep_eval) + ' time steps and eps = ' +str(mobility) )
     plot_graph(W, country_data, 'Undirected Travel Graph', 0.001)
 
-if __name__ == "__main__":
-    beta = 0.247
-    gamma = 0.1056
-    alpha = 0.44
 
-    steps = 300
+def run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0, n, mobility, I_trade_off, step_eval):
 
-    countries = ['Sweden', 'Denmark',  'Norway', 'Finland']
     populations = []
     confirmed_cases = []
     confirmed_recovered_cases = []
@@ -231,39 +223,88 @@ if __name__ == "__main__":
     D = get_D_from_W(W)
     L_un = (D - W)
     L = norm_L_norm(L_un, D)
-    n = len(countries)
-    restrictions = np.array([1, 1, 1, 1])#[0.71, 0.675, 0.625, 0.65])
-    I_trade_off = 0.0001
-    mobility = 0.43
-
-    S0 = [1]*4
-    E0 = [0]*4
-    I0 = [0.0001, 0.00001, 0.00001, 0.00001]#[100/populations[i] for i in range(n)]
-    R0 = [0]*4
-    for j in range(n):
-        E0[j]  = I0[j]*2.5
-        S0[j] -= (I0[j] + E0[j])
 
     seir = SEIR(
-                S0, #S0
-                E0, #E0
-                I0, #I0
-                R0, #R0
-                L, #L
-                1, #dt
-                steps, # no of steps
-                n, # no of countries
-                restrictions,
-                beta=beta,
-                gamma=gamma,
-                alpha=alpha,
-                mobility= mobility,
-                I_trade_off = I_trade_off
-               )
+        S0,  # S0
+        E0,  # E0
+        I0,  # I0
+        R0,  # R0
+        L,  # L
+        1,  # dt
+        steps,  # no of steps
+        n,  # no of countries
+        restrictions,
+        beta=beta,
+        gamma=gamma,
+        alpha=alpha,
+        mobility=mobility,
+        I_trade_off=I_trade_off
+    )
 
     for t in range(1, steps):
         seir.next_step(t)
 
-    step_eval = 100
     plot_maps(countries, W, seir.AI, step_eval, "AI", mobility)
-    plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, countries, populations)
+    #plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, countries, populations)
+    return seir
+
+def plot_vectors(x, y, title, countries):
+    plt.figure()
+    for country_idx, country_name in enumerate(countries):
+            plt.plot(x, y[country_idx], label=country_name)
+    plt.title(title, fontsize=16)
+    plt.xlabel('I0 difference', fontsize=14)
+    plt.ylabel('Lambda', fontsize=14)
+    plt.legend()
+    plt.show()
+
+def main():
+    beta = 0.247
+    gamma = 0.1056
+    alpha = 0.44
+
+    steps = 300
+    countries = ['Sweden', 'Denmark', 'Norway', 'Finland']
+    n = len(countries)
+
+    restrictions = np.array([0.71, 0.675, 0.625, 0.65])
+    I_trade_off = 0.0001
+    mobility = 0.43
+
+    """
+    S0 = [1] * 4
+    E0 = [0] * 4
+    I0 = [0.0001, 0.00001, 0.00001, 0.00001]  # [100/populations[i] for i in range(n)]
+    R0 = [0] * 4
+    for j in range(n):
+        E0[j] = I0[j] * 2.5
+        S0[j] -= (I0[j] + E0[j])
+    """
+    other_country_I0 = 0.000001
+    SWE_I0s = [0.000001, 0.000005, 0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.005, 0.01]
+    step_eval = 100
+    Lambda_vecs = np.zeros((len(countries), len(SWE_I0s)))
+    diff_I0s_vec = np.array(SWE_I0s) - other_country_I0
+    for I0_diff_idx, SWE_I0 in enumerate(SWE_I0s):
+        S0 = [1] * 4
+        E0 = [0] * 4
+        I0 = [SWE_I0, other_country_I0, other_country_I0, other_country_I0]  # [100/populations[i] for i in range(n)]
+        R0 = [0] * 4
+        for j in range(n):
+            E0[j] = I0[j] * beta / gamma
+            S0[j] -= (I0[j] + E0[j])
+
+        seir_travel = run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0, n,
+                         mobility, I_trade_off, step_eval)
+        seir_no_travel = run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0, n,
+                                0, I_trade_off, step_eval)
+        RT = seir_travel.R[:,step_eval]
+        RNT = seir_no_travel.R[:,step_eval]
+
+        for country_idx, country_name in enumerate(countries):
+            Lambda_vecs[country_idx, I0_diff_idx] = calc_Lambda(RT[country_idx], RNT[country_idx])
+
+    plot_vectors(diff_I0s_vec, Lambda_vecs, 'Lambda showing impact of travelling with SWE as epicentrum & r!=1', countries)
+
+if __name__ == "__main__":
+    main()
