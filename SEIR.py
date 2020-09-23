@@ -198,16 +198,14 @@ def get_D_from_W(W):
 def plot_maps(countries, W, comp_mat, sep_eval, compartment, mobility):
     country_data = {}
     comp_eval = list(comp_mat[:, sep_eval])
-    comp_eval = [round(num, 2) for num in comp_eval]
+    comp_eval = [round(num, 3) for num in comp_eval]
     country_data.update(zip(countries, comp_eval))
 
-    plot_map(country_data, compartment, 'Regional levels of ' + str(compartment) + ' after ' + str(sep_eval) + ' time steps and eps = ' +str(mobility) )
+    plot_map(country_data, compartment, 'Regional levels of ' + str(compartment) + ' after ' + str(sep_eval) + ' time steps and eps = ' +str(mobility))
     plot_graph(W, country_data, 'Undirected Travel Graph', 0.001)
 
 
-def run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0, n, mobility, I_trade_off, step_eval):
-
-    populations = []
+def run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0, n, mobility, I_trade_off, step_eval, populations):
     confirmed_cases = []
     confirmed_recovered_cases = []
 
@@ -215,9 +213,6 @@ def run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0
         conf, rec = import_confirmed(country, gamma)
         confirmed_cases.append(conf)
         confirmed_recovered_cases.append(rec)
-        populations.append(get_pop(country))
-
-    total_population = sum(populations)
 
     W = import_travel_as_W(countries)
     D = get_D_from_W(W)
@@ -244,7 +239,7 @@ def run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0
     for t in range(1, steps):
         seir.next_step(t)
 
-    #plot_maps(countries, W, seir.AI, step_eval, "AI", mobility)
+    #plot_maps(countries, W, seir.R, step_eval, "R", mobility)
     #plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, countries, populations)
     return seir
 
@@ -266,7 +261,7 @@ def plot_grid_search(r, epsilon, Lambda, title):
     plt.ylabel('epsilon', fontsize=15)
     plt.show()
 
-def grid_search(beta, gamma, alpha, steps, countries, I_trade_off, title, step_eval):
+def grid_search(beta, gamma, alpha, steps, countries, I_trade_off, title, step_eval, populations):
     other_country_I0 = 0.000001
     SWE_I0 = 0.001
     c = [10, 1, 10]
@@ -289,9 +284,9 @@ def grid_search(beta, gamma, alpha, steps, countries, I_trade_off, title, step_e
         epsilon_point = epsilon[point_idx]
         r_vec = [r_point] * 4
         seir_travel = run_model(beta, gamma, alpha, steps, countries, r_vec, S0, E0, I0, R0, n,
-                                epsilon_point, I_trade_off, step_eval)
+                                epsilon_point, I_trade_off, step_eval, populations)
         seir_no_travel = run_model(beta, gamma, alpha, steps, countries, r_vec, S0, E0, I0, R0, n,
-                                0, I_trade_off, step_eval)
+                                0, I_trade_off, step_eval, populations)
 
         RT = seir_travel.R[:, step_eval]
         RNT = seir_no_travel.R[:, step_eval]
@@ -329,34 +324,27 @@ def main():
     n = len(countries)
 
 
-    restrictions = np.array([0.71, 0.675, 0.625, 0.65])
+    restrictions = np.array([0.71, 0.675, 0.625, 0.65])#[0.71, 0.675, 0.625, 0.65] [1,1,1,1]
     I_trade_off = 0.0001
     mobility = 0.43
 
-    grid_search(beta, gamma, alpha, steps, countries, I_trade_off, 'Lambda color coded for different r and epsilon', step_eval)
+    populations = []
+    for country in countries:
+        populations.append(get_pop(country))
+    grid_search(beta, gamma, alpha, steps, countries, I_trade_off, 'Lambda color coded for different r and epsilon', step_eval, populations)
 
-
-    """
-    S0 = [1] * 4
-    E0 = [0] * 4
-    I0 = [0.0001, 0.00001, 0.00001, 0.00001]  # [100/populations[i] for i in range(n)]
-    R0 = [0] * 4
-    for j in range(n):
-        E0[j] = I0[j] * 2.5
-        S0[j] -= (I0[j] + E0[j])
-    """
     other_country_I0 = 0.000001
     SWE_I0s = [0.000001, 0.000005, 0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.005, 0.01]
     Lambda_vecs = np.zeros((len(countries), len(SWE_I0s)))
     diff_I0s_vec = np.array(SWE_I0s) - other_country_I0
     for I0_diff_idx, SWE_I0 in enumerate(SWE_I0s):
-        I0 = [SWE_I0, other_country_I0, other_country_I0, other_country_I0]  # [100/populations[i] for i in range(n)]
+        I0 = [SWE_I0, other_country_I0, other_country_I0, other_country_I0] #[0.0001, other_country_I0, other_country_I0, other_country_I0] [1000/populations[i] for i in range(n)]
         S0, E0, I0, R0 = get_compartments(I0, beta, gamma, n)
 
         seir_travel = run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0, n,
-                         mobility, I_trade_off, step_eval)
+                         mobility, I_trade_off, step_eval, populations)
         seir_no_travel = run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0, n,
-                                0, I_trade_off, step_eval)
+                                0, I_trade_off, step_eval, populations)
         RT = seir_travel.R[:,step_eval]
         RNT = seir_no_travel.R[:,step_eval]
 
