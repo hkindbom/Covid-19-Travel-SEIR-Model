@@ -13,7 +13,7 @@ def calc_QoS(Lambdas, rs, epsilon, c):
     avg = 0
     N = len(Lambdas)
     for Lambda, r in zip(Lambdas, rs):
-        avg += (1/N) * (c[0]*r + c[1]*(1 - Lambda))
+        avg += (1/N) * (c[0]*r - c[1]*Lambda)
     return avg + c[2]*epsilon
 
 def calc_Lambda(RT, RNT):

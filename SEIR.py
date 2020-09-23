@@ -5,7 +5,7 @@ import matplotlib
 import pandas as pd
 
 from Map import plot_graph, plot_map
-from Metrics import calc_Lambda, norm_L_norm
+from Metrics import calc_Lambda, norm_L_norm, calc_QoS
 
 class SEIR:
 
@@ -244,7 +244,7 @@ def run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0
     for t in range(1, steps):
         seir.next_step(t)
 
-    plot_maps(countries, W, seir.AI, step_eval, "AI", mobility)
+    #plot_maps(countries, W, seir.AI, step_eval, "AI", mobility)
     #plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, countries, populations)
     return seir
 
@@ -258,18 +258,83 @@ def plot_vectors(x, y, title, countries):
     plt.legend()
     plt.show()
 
+def plot_grid_search(r, epsilon, Lambda, title):
+    plt.scatter(r, epsilon, c=Lambda, s=50, cmap='YlOrRd')
+    plt.colorbar()
+    plt.title(title, fontsize=16)
+    plt.xlabel('r', fontsize=15)
+    plt.ylabel('epsilon', fontsize=15)
+    plt.show()
+
+def grid_search(beta, gamma, alpha, steps, countries, I_trade_off, title, step_eval):
+    other_country_I0 = 0.000001
+    SWE_I0 = 0.001
+    c = [10, 1, 10]
+
+    I0 = [SWE_I0, other_country_I0, other_country_I0, other_country_I0]
+    n = len(countries)
+    S0, E0, I0, R0 = get_compartments(I0, beta, gamma, n)
+
+    r_lim = [0, 1]
+    epsilon_lim = [0, 0.43]
+    grid_step = 0.1
+    r_avg, epsilon = np.mgrid[slice(r_lim[0], r_lim[1] + grid_step, grid_step), slice(epsilon_lim[0], epsilon_lim[1] + grid_step, grid_step)]
+    r_avg, epsilon = np.concatenate(r_avg), np.concatenate(epsilon)
+    Lambdas_avg = np.zeros(epsilon.shape[0])
+    QoS_vec = np.zeros(epsilon.shape[0])
+
+
+    for point_idx in range(epsilon.shape[0]):
+        r_point = r_avg[point_idx]
+        epsilon_point = epsilon[point_idx]
+        r_vec = [r_point] * 4
+        seir_travel = run_model(beta, gamma, alpha, steps, countries, r_vec, S0, E0, I0, R0, n,
+                                epsilon_point, I_trade_off, step_eval)
+        seir_no_travel = run_model(beta, gamma, alpha, steps, countries, r_vec, S0, E0, I0, R0, n,
+                                0, I_trade_off, step_eval)
+
+        RT = seir_travel.R[:, step_eval]
+        RNT = seir_no_travel.R[:, step_eval]
+        Lambda_countries = np.zeros(n)
+
+        for country_idx, country_name in enumerate(countries):
+            Lambda_countries[country_idx] = calc_Lambda(RT[country_idx], RNT[country_idx])
+
+        Lambdas_avg[point_idx] = np.sum(Lambda_countries)/n
+        QoS_vec[point_idx] = calc_QoS(Lambda_countries.tolist(), r_vec, epsilon_point, c)
+
+    plot_grid_search(r_avg, epsilon, QoS_vec, 'Q_s color coded for different r and eps with c = '+str(c))
+    plot_grid_search(r_avg, epsilon, Lambdas_avg, title)
+
+def get_compartments(I0, beta, gamma, n):
+    S0 = [1] * 4
+    E0 = [0] * 4
+    R0 = [0] * 4
+    for j in range(n):
+        E0[j] = I0[j] * beta / gamma
+        S0[j] -= (I0[j] + E0[j])
+
+    return S0, E0, I0, R0
+
+
 def main():
     beta = 0.247
     gamma = 0.1056
     alpha = 0.44
 
     steps = 300
+    step_eval = 100
+
     countries = ['Sweden', 'Denmark', 'Norway', 'Finland']
     n = len(countries)
+
 
     restrictions = np.array([0.71, 0.675, 0.625, 0.65])
     I_trade_off = 0.0001
     mobility = 0.43
+
+    grid_search(beta, gamma, alpha, steps, countries, I_trade_off, 'Lambda color coded for different r and epsilon', step_eval)
+
 
     """
     S0 = [1] * 4
@@ -282,17 +347,11 @@ def main():
     """
     other_country_I0 = 0.000001
     SWE_I0s = [0.000001, 0.000005, 0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.005, 0.01]
-    step_eval = 100
     Lambda_vecs = np.zeros((len(countries), len(SWE_I0s)))
     diff_I0s_vec = np.array(SWE_I0s) - other_country_I0
     for I0_diff_idx, SWE_I0 in enumerate(SWE_I0s):
-        S0 = [1] * 4
-        E0 = [0] * 4
         I0 = [SWE_I0, other_country_I0, other_country_I0, other_country_I0]  # [100/populations[i] for i in range(n)]
-        R0 = [0] * 4
-        for j in range(n):
-            E0[j] = I0[j] * beta / gamma
-            S0[j] -= (I0[j] + E0[j])
+        S0, E0, I0, R0 = get_compartments(I0, beta, gamma, n)
 
         seir_travel = run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0, n,
                          mobility, I_trade_off, step_eval)
