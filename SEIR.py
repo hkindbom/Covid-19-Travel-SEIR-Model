@@ -253,6 +253,16 @@ def plot_vectors(x, y, title, countries):
     plt.legend()
     plt.show()
 
+def plot_vectors_time(x, y, title, I0_diffs):
+    plt.figure()
+    for I0_diff_idx, I0_diff in enumerate(I0_diffs):
+            plt.plot(x, y[I0_diff_idx, :], label='I0_diff ='+str(round(I0_diff, 6)))
+    plt.title(title, fontsize=16)
+    plt.xlabel('Time', fontsize=14)
+    plt.ylabel('Avg Lambda', fontsize=14)
+    plt.legend()
+    plt.show()
+
 def plot_grid_search(r, epsilon, Lambda, title):
     plt.scatter(r, epsilon, c=Lambda, s=50, cmap='YlOrRd')
     plt.colorbar()
@@ -301,6 +311,40 @@ def grid_search(beta, gamma, alpha, steps, countries, I_trade_off, title, step_e
     plot_grid_search(r_avg, epsilon, QoS_vec, 'Q_s color coded for different r and eps with c = '+str(c))
     plot_grid_search(r_avg, epsilon, Lambdas_avg, title)
 
+def lambda_over_time(beta, gamma, alpha, steps, countries, I_trade_off, title, populations, restrictions, epsilon):
+    start_time = 10
+    stop_time = 299
+    data_points = 15
+    time_steps = np.linspace(start_time, stop_time, data_points)
+    n = len(countries)
+
+    other_country_I0 = 0.000001
+    SWE_I0s = [0.000001, 0.00001, 0.0001, 0.001, 0.01]
+    Lambdas_avg = np.zeros((len(SWE_I0s), data_points))
+
+    I0_diffs = np.array(SWE_I0s) - other_country_I0
+    for I0_diff_idx, SWE_I0 in enumerate(SWE_I0s):
+        I0 = [SWE_I0, other_country_I0, other_country_I0, other_country_I0]
+        S0, E0, I0, R0 = get_compartments(I0, beta, gamma, n)
+
+        for point_idx in range(len(time_steps)):
+            step_eval = int(time_steps[point_idx])
+
+            seir_travel = run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0, n,
+                                    epsilon, I_trade_off, step_eval, populations)
+            seir_no_travel = run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0, n,
+                                       0, I_trade_off, step_eval, populations)
+
+            RT = seir_travel.R[:, step_eval]
+            RNT = seir_no_travel.R[:, step_eval]
+            Lambda_countries = np.zeros(n)
+            for country_idx, country_name in enumerate(countries):
+                Lambda_countries[country_idx] = calc_Lambda(RT[country_idx], RNT[country_idx])
+            Lambdas_avg[I0_diff_idx, point_idx] = np.sum(Lambda_countries) / n
+
+    plot_vectors_time(time_steps, Lambdas_avg, title, I0_diffs)
+
+
 def get_compartments(I0, beta, gamma, n):
     S0 = [1] * 4
     E0 = [0] * 4
@@ -310,7 +354,6 @@ def get_compartments(I0, beta, gamma, n):
         S0[j] -= (I0[j] + E0[j])
 
     return S0, E0, I0, R0
-
 
 def main():
     beta = 0.247
@@ -324,13 +367,14 @@ def main():
     n = len(countries)
 
 
-    restrictions = np.array([0.71, 0.675, 0.625, 0.65])#[0.71, 0.675, 0.625, 0.65] [1,1,1,1]
+    restrictions = np.array([1,1,1,1])#[0.71, 0.675, 0.625, 0.65] [1,1,1,1]
     I_trade_off = 0.0001
     mobility = 0.43
 
     populations = []
     for country in countries:
         populations.append(get_pop(country))
+    lambda_over_time(beta, gamma, alpha, steps, countries, I_trade_off, 'Avg Lambda over time with r=1', populations, restrictions, mobility)
     grid_search(beta, gamma, alpha, steps, countries, I_trade_off, 'Lambda color coded for different r and epsilon', step_eval, populations)
 
     other_country_I0 = 0.000001
