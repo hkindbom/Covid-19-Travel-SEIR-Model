@@ -66,7 +66,7 @@ def plot_graph(W, country_data, title, scale_node_size):
     country_labels = {}
     country_labels.update(zip(list(range(len(country_data))), country_data.keys()))
 
-    plt.title(title, fontsize=20)
+    plt.title(title, fontsize=25)
 
     # Draw the graph using the layout - with_labels=True if you want node labels.
     nx.draw(G, layout,  node_size=sizes, node_color=color_map)
@@ -76,7 +76,7 @@ def plot_graph(W, country_data, title, scale_node_size):
     labels = nx.get_edge_attributes(G, "weight")
 
     # Draw edge labels using layout and list of labels
-    nx.draw_networkx_edge_labels(G, pos=layout, edge_labels=labels)
+    nx.draw_networkx_edge_labels(G, pos=layout, edge_labels=labels, font_size=21)
 
     # Show plot
     plt.show()

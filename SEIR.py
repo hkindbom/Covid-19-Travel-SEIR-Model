@@ -202,7 +202,7 @@ def plot_maps(countries, W, comp_mat, sep_eval, compartment, mobility):
     country_data.update(zip(countries, comp_eval))
 
     plot_map(country_data, compartment, 'Regional levels of ' + str(compartment) + ' after ' + str(sep_eval) + ' time steps and eps = ' +str(mobility))
-    plot_graph(W, country_data, 'Undirected Travel Graph', 0.001)
+    plot_graph(W, country_data, 'Undirected Travel Graph', 0.005)
 
 
 def run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0, n, mobility, I_trade_off, step_eval, populations):
@@ -239,7 +239,7 @@ def run_model(beta, gamma, alpha, steps, countries, restrictions, S0, E0, I0, R0
     for t in range(1, steps):
         seir.next_step(t)
 
-    #plot_maps(countries, W, seir.R, step_eval, "R", mobility)
+    plot_maps(countries, W, seir.R, step_eval, "R", mobility)
     #plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, countries, populations)
     return seir
 
@@ -374,8 +374,9 @@ def main():
     populations = []
     for country in countries:
         populations.append(get_pop(country))
-    lambda_over_time(beta, gamma, alpha, steps, countries, I_trade_off, 'Avg Lambda over time with r=1', populations, restrictions, mobility)
-    grid_search(beta, gamma, alpha, steps, countries, I_trade_off, 'Lambda color coded for different r and epsilon', step_eval, populations)
+
+    #lambda_over_time(beta, gamma, alpha, steps, countries, I_trade_off, 'Avg Lambda over time with r=1', populations, restrictions, mobility)
+    #grid_search(beta, gamma, alpha, steps, countries, I_trade_off, 'Lambda color coded for different r and epsilon', step_eval, populations)
 
     other_country_I0 = 0.000001
     SWE_I0s = [0.000001, 0.000005, 0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.005, 0.01]
