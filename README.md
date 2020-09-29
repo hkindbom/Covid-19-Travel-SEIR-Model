@@ -1,14 +1,27 @@
-# SEQIJR model for Covid-19
+# SEIR travel model for Covid-19 dynamics in the Nordics
+### SF2868 Applied Systems Engineering at KTH (Fall 2020)
+SEIR-Model:
 
-SEQIJR-Model:
-
- S - Suspectible
- I - Infective
- R - Recovered
+ S - Suspectible,
+ E - Exposed,
+ I - Infective,
+ R - Recovered,
 
 ## Authors
 
-Team delta
+**Team delta**
+
+Hannes Kindbom (code and report)
+
+Robin Sandström (code and report)
+
+Mohammed Issa (report)
+
+Elin Dai (report)
+
+
+
+
 
 ## License
 
