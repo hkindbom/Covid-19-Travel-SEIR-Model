@@ -54,8 +54,6 @@ class SEIR:
             for country_idx in range(len(self.restrictions)):
                 if self.I[country_idx, t-1] > self.I_trade_off:
                     self.beta_per_country[country_idx] *= self.restrictions[country_idx]
-                #if self.I[country_idx, t-1] < self.I_trade_off:
-                #    self.beta_per_country[country_idx] = self.beta
 
 
 def millions(x, pos):
@@ -66,7 +64,7 @@ def millions(x, pos):
 def plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, countries, populations):
     fig, axs = plt.subplots(2, 2)
     fig.tight_layout(pad=2)
-    fig.suptitle('Beta=' + str(seir.beta) + ', gamma=' + str(seir.gamma) + ', alpha=' + str(seir.alpha)) # or plt.suptitle('Main title')
+    fig.suptitle('Beta=' + str(seir.beta) + ', gamma=' + str(seir.gamma) + ', alpha=' + str(seir.alpha))
     x = 0
     y = 0
     for i in range(n):
@@ -91,7 +89,7 @@ def plot_start_values(confirmed_cases, confirmed_recovered_cases, seir, n, count
 def plot_traveling(confirmed_cases, confirmed_recovered_cases, seir, n, countries, populations):
     fig, axs = plt.subplots(2, 2)
     fig.tight_layout(pad=2)
-    fig.suptitle('Beta=' + str(seir.beta) + ', gamma=' + str(seir.gamma) + ', alpha=' + str(seir.alpha)) # or plt.suptitle('Main title')
+    fig.suptitle('Beta=' + str(seir.beta) + ', gamma=' + str(seir.gamma) + ', alpha=' + str(seir.alpha))
     x = 0
     y = 0
     for i in range(n):
@@ -375,8 +373,8 @@ def main():
     for country in countries:
         populations.append(get_pop(country))
 
-    #lambda_over_time(beta, gamma, alpha, steps, countries, I_trade_off, 'Avg Lambda over time with r=1', populations, restrictions, mobility)
-    #grid_search(beta, gamma, alpha, steps, countries, I_trade_off, 'Lambda color coded for different r and epsilon', step_eval, populations)
+    lambda_over_time(beta, gamma, alpha, steps, countries, I_trade_off, 'Avg Lambda over time with r=1', populations, restrictions, mobility)
+    grid_search(beta, gamma, alpha, steps, countries, I_trade_off, 'Lambda color coded for different r and epsilon', step_eval, populations)
 
     other_country_I0 = 0.000001
     SWE_I0s = [0.000001, 0.000005, 0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.005, 0.01]
